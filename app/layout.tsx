@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
+import Header from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "Éditeur d'Images IA",
@@ -14,7 +16,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="antialiased">
-        {children}
+        <AuthProvider>
+          <Header />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

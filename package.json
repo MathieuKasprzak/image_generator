@@ -11,6 +11,8 @@
     "check": "bash check-setup.sh"
   },
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.39.0",
     "dotenv": "^17.2.3",
     "next": "14.1.0",

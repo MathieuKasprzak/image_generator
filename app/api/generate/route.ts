@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Replicate from 'replicate';
 import { STORAGE_BUCKETS, REPLICATE_MODEL, DEFAULT_REPLICATE_CONFIG, STATUS } from '@/config/constants';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 // Initialize Supabase client with service role key for admin operations
 const supabase = createClient(
@@ -16,6 +17,16 @@ const replicate = new Replicate({
 
 export async function POST(request: NextRequest) {
   try {
+    // Vérifier l'authentification
+    const supabaseServer = await createServerClient();
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Non autorisé. Veuillez vous connecter.' },
+        { status: 401 }
+      );
+    }
     const formData = await request.formData();
     const image = formData.get('image') as File;
     const prompt = formData.get('prompt') as string;
@@ -113,12 +124,13 @@ export async function POST(request: NextRequest) {
 
     const outputImageUrl = outputUrlData.publicUrl;
 
-    // 7. Save to database
+    // 7. Save to database with user_id
     console.log('Saving to database...');
     const { data: projectData, error: dbError } = await supabase
       .from('projects')
       .insert([
         {
+          user_id: user.id,
           input_image_url: inputImageUrl,
           output_image_url: outputImageUrl,
           prompt: prompt,

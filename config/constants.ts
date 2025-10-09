@@ -9,7 +9,7 @@ export const REPLICATE_MODEL = 'jagilley/controlnet-scribble:435061a1b5a4c1e2674
 
 export const DEFAULT_REPLICATE_CONFIG = {
   num_outputs: 1,
-  image_resolution: 512,
+  image_resolution: "512",
   num_inference_steps: 20,
 } as const;
 
