@@ -10,13 +10,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Initialize Replicate client
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
-});
-
 export async function POST(request: NextRequest) {
   try {
+    // Debug: Vérifier que le token est chargé
+    console.log('REPLICATE_API_TOKEN présent:', !!process.env.REPLICATE_API_TOKEN);
+    console.log('REPLICATE_API_TOKEN:', process.env.REPLICATE_API_TOKEN);
+    
+    // Initialize Replicate client à chaque requête pour s'assurer que le token est à jour
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN!,
+    });
+    
     // Vérifier l'authentification
     const supabaseServer = await createServerClient();
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
@@ -78,16 +82,17 @@ export async function POST(request: NextRequest) {
           ...DEFAULT_REPLICATE_CONFIG,
         },
       }
-    ) as string[];
+    );
 
-    if (!output || output.length === 0) {
+    // nano-banana retourne directement une string, pas un array
+    const replicateImageUrl = typeof output === 'string' ? output : (Array.isArray(output) ? output[0] : null);
+    
+    if (!replicateImageUrl) {
       return NextResponse.json(
         { error: 'Aucune image générée par Replicate' },
         { status: 500 }
       );
     }
-
-    const replicateImageUrl = output[0];
     console.log('Generated image URL from Replicate:', replicateImageUrl);
 
     // 4. Download the generated image from Replicate
