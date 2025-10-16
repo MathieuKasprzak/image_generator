@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
 
@@ -18,6 +18,7 @@ interface Project {
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string>('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  const [subscriptionKey, setSubscriptionKey] = useState(0);
 
   // Redirection si non connecté
   useEffect(() => {
@@ -36,6 +38,34 @@ export default function DashboardPage() {
       router.push('/login');
     }
   }, [user, authLoading, router]);
+
+  // Synchroniser l'abonnement si retour de Stripe
+  useEffect(() => {
+    const syncSubscription = async () => {
+      if (searchParams.get('success') === 'true') {
+        console.log('Synchronisation de l\'abonnement après paiement...');
+        try {
+          const response = await fetch('/api/stripe/sync-subscription', {
+            method: 'POST',
+          });
+          const data = await response.json();
+          console.log('Résultat de la synchronisation:', data);
+          
+          // Forcer le rechargement du composant SubscriptionStatus
+          setSubscriptionKey(prev => prev + 1);
+          
+          // Nettoyer l'URL
+          router.replace('/dashboard');
+        } catch (error) {
+          console.error('Erreur de synchronisation:', error);
+        }
+      }
+    };
+
+    if (user && searchParams.get('success')) {
+      syncSubscription();
+    }
+  }, [user, searchParams, router]);
 
   // Charger les projets de l'utilisateur
   useEffect(() => {
@@ -159,7 +189,7 @@ export default function DashboardPage() {
 
           {/* Subscription Status */}
           <div className="mb-8">
-            <SubscriptionStatus />
+            <SubscriptionStatus key={subscriptionKey} />
           </div>
 
           {/* Form de génération */}
