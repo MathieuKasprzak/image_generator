@@ -72,6 +72,17 @@ export async function POST(request: NextRequest) {
     const priceId = subscription.items.data[0]?.price.id;
     const plan = getPlanByPriceId(priceId);
 
+    // Convertir current_period_end en toute sécurité
+    let currentPeriodEnd = null;
+    try {
+      const periodEndTimestamp = (subscription as any).current_period_end;
+      if (periodEndTimestamp && typeof periodEndTimestamp === 'number') {
+        currentPeriodEnd = new Date(periodEndTimestamp * 1000).toISOString();
+      }
+    } catch (error) {
+      console.error('Error parsing current_period_end:', error);
+    }
+
     // Créer ou mettre à jour l'abonnement dans Supabase
     const { data: upsertedSubscription, error: upsertError } = await supabase
       .from('subscriptions')
@@ -81,7 +92,7 @@ export async function POST(request: NextRequest) {
         stripe_subscription_id: subscription.id,
         stripe_price_id: priceId,
         status: subscription.status,
-        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+        current_period_end: currentPeriodEnd,
         quota_limit: plan?.quota || 50,
         quota_used: existingSubscription?.quota_used || 0,
         updated_at: new Date().toISOString(),

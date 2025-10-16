@@ -107,6 +107,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const priceId = subscription.items.data[0]?.price.id;
   const plan = getPlanByPriceId(priceId);
 
+  // Convertir current_period_end en toute sécurité
+  let currentPeriodEnd = null;
+  try {
+    const periodEndTimestamp = (subscription as any).current_period_end;
+    if (periodEndTimestamp && typeof periodEndTimestamp === 'number') {
+      currentPeriodEnd = new Date(periodEndTimestamp * 1000).toISOString();
+    }
+  } catch (error) {
+    console.error('Error parsing current_period_end in checkout:', error);
+  }
+
   // Créer ou mettre à jour l'abonnement dans Supabase
   const { error } = await supabase
     .from('subscriptions')
@@ -116,7 +127,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripe_subscription_id: subscription.id,
       stripe_price_id: priceId,
       status: subscription.status,
-      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+      current_period_end: currentPeriodEnd,
       quota_limit: plan?.quota || 50,
       quota_used: 0,
       updated_at: new Date().toISOString(),
@@ -133,12 +144,23 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const priceId = subscription.items.data[0]?.price.id;
   const plan = getPlanByPriceId(priceId);
 
+  // Convertir current_period_end en toute sécurité
+  let currentPeriodEnd = null;
+  try {
+    const periodEndTimestamp = (subscription as any).current_period_end;
+    if (periodEndTimestamp && typeof periodEndTimestamp === 'number') {
+      currentPeriodEnd = new Date(periodEndTimestamp * 1000).toISOString();
+    }
+  } catch (error) {
+    console.error('Error parsing current_period_end in update:', error);
+  }
+
   const { error } = await supabase
     .from('subscriptions')
     .update({
       stripe_price_id: priceId,
       status: subscription.status,
-      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+      current_period_end: currentPeriodEnd,
       quota_limit: plan?.quota || 50,
       updated_at: new Date().toISOString(),
     })
