@@ -4,6 +4,9 @@ import Replicate from 'replicate';
 import { STORAGE_BUCKETS, REPLICATE_MODEL, DEFAULT_REPLICATE_CONFIG, STATUS } from '@/config/constants';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 // Initialize Supabase client with service role key for admin operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
