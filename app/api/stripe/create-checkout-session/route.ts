@@ -26,6 +26,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Détecter l'URL de base (production ou développement)
+    const origin = request.headers.get('origin') || request.headers.get('referer')?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = origin.startsWith('http') ? origin : `https://${origin}`;
+
     // Vérifier si l'utilisateur a déjà un customer Stripe
     const { data: existingSubscription } = await supabase
       .from('subscriptions')
@@ -56,8 +60,8 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?canceled=true`,
+      success_url: `${baseUrl}/dashboard?success=true`,
+      cancel_url: `${baseUrl}/dashboard?canceled=true`,
       metadata: {
         user_id: user.id,
       },

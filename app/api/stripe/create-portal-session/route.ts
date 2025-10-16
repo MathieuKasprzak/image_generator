@@ -31,10 +31,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Détecter l'URL de base (production ou développement)
+    const origin = request.headers.get('origin') || request.headers.get('referer')?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = origin.startsWith('http') ? origin : `https://${origin}`;
+
     // Créer une session de portail client
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
+      return_url: `${baseUrl}/dashboard`,
     });
 
     return NextResponse.json({ url: session.url });
