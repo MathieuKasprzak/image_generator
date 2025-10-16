@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 interface Project {
   id: string;
@@ -154,6 +155,11 @@ export default function DashboardPage() {
             <p className="text-gray-600 dark:text-gray-400 text-lg">
               Bienvenue {user.email} ! Créez et gérez vos images
             </p>
+          </div>
+
+          {/* Subscription Status */}
+          <div className="mb-8">
+            <SubscriptionStatus />
           </div>
 
           {/* Form de génération */}

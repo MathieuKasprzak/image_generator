@@ -31,6 +31,30 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Vérifier le quota de l'utilisateur
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    // Vérifier si l'utilisateur a un abonnement actif
+    if (!subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')) {
+      return NextResponse.json(
+        { error: 'Abonnement requis. Veuillez souscrire à un plan.' },
+        { status: 403 }
+      );
+    }
+
+    // Vérifier si le quota est dépassé
+    if (subscription.quota_used >= subscription.quota_limit) {
+      return NextResponse.json(
+        { error: 'Quota épuisé. Veuillez mettre à niveau votre plan ou attendre le prochain cycle.' },
+        { status: 403 }
+      );
+    }
+    
     const formData = await request.formData();
     const image = formData.get('image') as File;
     const prompt = formData.get('prompt') as string;
@@ -150,7 +174,20 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if DB insert fails, image is already generated
     }
 
-    // 8. Return the output image URL
+    // 8. Incrémenter le quota utilisé
+    const { error: quotaError } = await supabase
+      .from('subscriptions')
+      .update({
+        quota_used: subscription.quota_used + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id);
+
+    if (quotaError) {
+      console.error('Error updating quota:', quotaError);
+    }
+
+    // 9. Return the output image URL
     return NextResponse.json({
       success: true,
       outputImageUrl: outputImageUrl,

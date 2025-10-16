@@ -22,3 +22,8 @@ export const STATUS = {
   COMPLETED: 'completed',
   FAILED: 'failed',
 } as const;
+
+export const STRIPE_PRICE_IDS = {
+  BASIC: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_BASIC || 'price_1SIqT23f3KoZz590nJflR6ZU',
+  PRO: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO || 'price_1SIqVw3f3KoZz590boFjfscn',
+} as const;
