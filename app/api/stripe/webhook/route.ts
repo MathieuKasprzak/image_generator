@@ -119,24 +119,50 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Créer ou mettre à jour l'abonnement dans Supabase
-  const { error } = await supabase
+  // D'abord, essayer de mettre à jour si existe déjà
+  const { data: existingData } = await supabase
     .from('subscriptions')
-    .upsert({
-      user_id: userId,
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscription.id,
-      stripe_price_id: priceId,
-      status: subscription.status,
-      current_period_end: currentPeriodEnd,
-      quota_limit: plan?.quota || 50,
-      quota_used: 0,
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'user_id',
-    });
+    .select('id')
+    .eq('user_id', userId)
+    .single();
 
-  if (error) {
-    console.error('Error upserting subscription:', error);
+  if (existingData) {
+    // Update
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscription.id,
+        stripe_price_id: priceId,
+        status: subscription.status,
+        current_period_end: currentPeriodEnd,
+        quota_limit: plan?.quota || 50,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error updating subscription:', error);
+    }
+  } else {
+    // Insert
+    const { error } = await supabase
+      .from('subscriptions')
+      .insert({
+        user_id: userId,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscription.id,
+        stripe_price_id: priceId,
+        status: subscription.status,
+        current_period_end: currentPeriodEnd,
+        quota_limit: plan?.quota || 50,
+        quota_used: 0,
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      console.error('Error inserting subscription:', error);
+    }
   }
 }
 

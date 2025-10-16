@@ -84,23 +84,56 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer ou mettre à jour l'abonnement dans Supabase
-    const { data: upsertedSubscription, error: upsertError } = await supabase
+    // D'abord, essayer de mettre à jour si existe déjà
+    const { data: existingData } = await supabase
       .from('subscriptions')
-      .upsert({
-        user_id: user.id,
-        stripe_customer_id: customer.id,
-        stripe_subscription_id: subscription.id,
-        stripe_price_id: priceId,
-        status: subscription.status,
-        current_period_end: currentPeriodEnd,
-        quota_limit: plan?.quota || 50,
-        quota_used: existingSubscription?.quota_used || 0,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
-      })
-      .select()
+      .select('id')
+      .eq('user_id', user.id)
       .single();
+
+    let upsertedSubscription;
+    let upsertError;
+
+    if (existingData) {
+      // Update
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .update({
+          stripe_customer_id: customer.id,
+          stripe_subscription_id: subscription.id,
+          stripe_price_id: priceId,
+          status: subscription.status,
+          current_period_end: currentPeriodEnd,
+          quota_limit: plan?.quota || 50,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      
+      upsertedSubscription = data;
+      upsertError = error;
+    } else {
+      // Insert
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: user.id,
+          stripe_customer_id: customer.id,
+          stripe_subscription_id: subscription.id,
+          stripe_price_id: priceId,
+          status: subscription.status,
+          current_period_end: currentPeriodEnd,
+          quota_limit: plan?.quota || 50,
+          quota_used: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      
+      upsertedSubscription = data;
+      upsertError = error;
+    }
 
     if (upsertError) {
       console.error('Error upserting subscription:', upsertError);
